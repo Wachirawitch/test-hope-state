@@ -1,0 +1,113 @@
+#!/bin/bash
+
+exec > >(tee >(systemd-cat -t on_config_done)) 2>&1
+
+send_line_notify() {
+    curl -X POST -H "Authorization: Bearer DQD4JBTi18whWLvXDyIEJhn8KeihRdpJIBAdW1mPTLL" -F "message=$1" https://notify-api.line.me/api/notify
+}
+
+ENV_PATH=/home/sun108/sun108-api/.env
+TOUCH_CALIBRATION_FILE_PATH=/usr/lib/machine-config/touch-calibrations
+STATE_DIR="/var/lib/hope-state"
+STATE_FILE="$STATE_DIR/state"
+
+if [ -z "$ENV_PATH" ]; then
+    echo "Error: $ENV_PATH is not file or directory" >&2
+    exit 1
+fi
+
+MACHINE_TYPE=$(cat $ENV_PATH | grep MACHINE_TYPE | sed -e 's/^[[:space:]]*//' | sed 's/.*=//')
+MACHINE_ID=$(cat $ENV_PATH | grep MACHINE_ID | sed -e 's/^[[:space:]]*//' | sed 's/.*=//')
+
+echo "Got machine type $MACHINE_TYPE"
+echo "Got machine id $MACHINE_ID"
+send_line_notify "$(echo -e "on_config_done called.\nMachine ID : $MACHINE_ID \nMachine type : $MACHINE_TYPE")"
+
+# Ensure /var/lib/hope-state directory exists
+if [ ! -d "$STATE_DIR" ]; then
+   echo "Directory $STATE_DIR not found. Creating directory..."
+   mkdir -p "$STATE_DIR"
+   echo "Directory $STATE_DIR created."
+else
+   echo "Directory $STATE_DIR already exists. No action needed."
+fi
+                 
+if grep -q "^DP07.*" <<< "$MACHINE_TYPE"; 
+then
+    echo "Setting machine config to DP07"
+    remount-boot-rw
+    set-config-param /boot/hopeEnv.txt "extraboardargs" "drm.edid_firmware=HDMI-A-1:edid/1024x600_59.852hz.bin"
+    remount-boot-ro
+    cp $TOUCH_CALIBRATION_FILE_PATH/DP07.rules /etc/udev/rules.d/99-touch-orientation.rules
+    sleep 10
+    reboot
+elif grep -q "^DP10.*" <<< "$MACHINE_TYPE";
+then
+    echo "Setting machine config to DP10"
+    remount-boot-rw
+    set-config-param /boot/hopeEnv.txt "extraboardargs" "drm.edid_firmware=HDMI-A-1:edid/1920x1080.bin"
+    remount-boot-ro
+    cp $TOUCH_CALIBRATION_FILE_PATH/DP10.rules /etc/udev/rules.d/99-touch-orientation.rules
+    sleep 10 
+    reboot
+elif grep -q "^DP22.*" <<< "$MACHINE_TYPE"; 
+then
+    echo "Setting machine config to DP22"
+    remount-boot-rw
+    clear-config-param /boot/hopeEnv.txt "extraboardargs"
+    remount-boot-ro
+    cp $TOUCH_CALIBRATION_FILE_PATH/DP22.rules /etc/udev/rules.d/99-touch-orientation.rules
+    sleep 10
+    reboot
+elif grep -q "^DP32$" <<< "$MACHINE_TYPE";
+then
+    echo "Setting machine config to DP32"
+    remount-boot-rw
+    clear-config-param /boot/hopeEnv.txt "extraboardargs"
+    remount-boot-ro
+    cp $TOUCH_CALIBRATION_FILE_PATH/DP32.rules /etc/udev/rules.d/99-touch-orientation.rules
+    sleep 10
+    reboot
+elif grep -q "^DP32FAG$" <<< "$MACHINE_TYPE";
+then
+    echo "Setting machine config to DP32FAG"
+    remount-boot-rw
+    clear-config-param /boot/hopeEnv.txt "extraboardargs"
+    remount-boot-ro
+    cp $TOUCH_CALIBRATION_FILE_PATH/DP32FAG.rules /etc/udev/rules.d/99-touch-orientation.rules
+    sleep 10
+    reboot
+elif grep -q "^DP3211L$" <<< "$MACHINE_TYPE";
+then
+    echo "Setting machine config to DP3211L"
+    remount-boot-rw
+    clear-config-param /boot/hopeEnv.txt "extraboardargs"
+    remount-boot-ro
+    cp $TOUCH_CALIBRATION_FILE_PATH/DP3211L.rules /etc/udev/rules.d/99-touch-orientation.rules
+    sleep 10
+    reboot
+elif grep -q "^DP43$" <<< "$MACHINE_TYPE"; 
+then
+    echo "Setting machine config to DP43"
+    remount-boot-rw
+    clear-config-param /boot/hopeEnv.txt "extraboardargs"
+    remount-boot-ro
+    cp $TOUCH_CALIBRATION_FILE_PATH/DP43.rules /etc/udev/rules.d/99-touch-orientation.rules
+    sleep 10
+    reboot
+elif grep -q "^DP43FAA$" <<< "$MACHINE_TYPE";
+then
+    echo "Setting machine config to DP43FAA"
+    remount-boot-rw
+    clear-config-param /boot/hopeEnv.txt "extraboardargs"
+    remount-boot-ro
+    cp $TOUCH_CALIBRATION_FILE_PATH/DP43FAA.rules /etc/udev/rules.d/99-touch-orientation.rules
+    sleep 10
+    reboot
+else
+    echo "Unknown machine type stored in $ENV_PATH" >&2
+fi
+
+# Store configured state
+echo "configured" > /var/lib/hope-state/state
+echo "Configured state stored."
